@@ -9,22 +9,22 @@ import pandas as pd
 import os
 
 
-def load_data(language="en"):
+def load_data(language="en", partitions=("train", "val", "test")):
     label_dict = {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5}
-    data = pd.concat(
-        [
-            pd.read_excel(
-                f"/content/readme/dataset/{language}/readme_{language}_train.xlsx"
-            ),
-            pd.read_excel(
-                f"/content/readme/dataset/{language}/readme_{language}_val.xlsx"
-            ),
-            pd.read_excel(
-                f"/content/readme/dataset/{language}/readme_{language}_test.xlsx"
-            ),
-        ],
-        axis=0,
-    )
+    if len(partitions) == 1:
+        data = pd.read_excel(
+            f"/content/readme/dataset/{language}/readme_{language}_{partitions[0]}.xlsx"
+        )
+    else:
+        data = pd.concat(
+            [
+                pd.read_excel(
+                    f"/content/readme/dataset/{language}/readme_{language}_{part}.xlsx"
+                )
+                for part in partitions
+            ],
+            axis=0,
+        )
 
     return data["Sentence"][
         data["Sentence"].apply(lambda x: isinstance(x, str))
@@ -60,7 +60,7 @@ class ReadMePipeline:
         if torch.cuda.is_available():
             self.device = "cuda"
 
-        model = self.model.to(self.device)
+        self.model = self.model.to(self.device)
         self.tokenizer = BertTokenizer.from_pretrained(
             "bert-base-multilingual-cased", do_lower_case=True
         )

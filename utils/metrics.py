@@ -10,7 +10,7 @@ from scipy.stats import wasserstein_distance
 def f1_score_func(preds, labels):
     preds_flat = np.argmax(preds, axis=1).flatten()
     labels_flat = labels.flatten()
-    return f1_score(labels_flat, preds_flat, average="weighted")
+    return f1_score(labels_flat, preds_flat, average="macro")
 
 
 def accuracy_per_class(preds, labels, label_dict):
@@ -26,15 +26,10 @@ def accuracy_per_class(preds, labels, label_dict):
         tqdm.write(f"Accuracy: {len(y_preds[y_preds==label])}/{len(y_true)}\n")
 
 
-def plot_confusion_matrix(preds, labels, label_dict):
-    preds_flat = np.argmax(preds, axis=1).flatten()
-    labels_flat = labels.flatten()
-    label_to_name = {value: key for key, value in label_dict.items()}
-
+def plot_confusion_matrix(preds, labels, label_dict, language="en", model_lang=None):
     # Вычисляем confusion matrix
-    cm = confusion_matrix(labels_flat, preds_flat)
-    label_names = list(label_dict.keys())  # ['Easy', 'Normal']
-    # label_names = ['Very Easy', 'Easy', 'Normal', 'Hard', 'Very Hard']#[label_to_name.get(label, "Unknown") for label in np.unique(labels_flat)]
+    cm = confusion_matrix(labels, preds)
+    label_names = list(label_dict.keys())
 
     # Визуализация confusion matrix
     plt.figure(figsize=(10, 7))
@@ -46,42 +41,16 @@ def plot_confusion_matrix(preds, labels, label_dict):
         xticklabels=label_names,
         yticklabels=label_names[::-1],
     )
-    plt.title("Confusion Matrix")
+    f1_macro = round(f1_score(preds, labels, average="macro"), 2)
+    if model_lang is None:
+        plt.title(f"langeage: {language}, f1 macro: {f1_macro}")
+    else:
+        plt.title(
+            f"model language: {model_lang}, langeage: {language}, f1 macro: {f1_macro}"
+        )
     plt.ylabel("Истинные классы")
     plt.xlabel("Предсказанные классы")
     plt.show()
-
-
-def metrics_per_class(preds, labels, label_dict):
-    label_dict_inverse = {v: k for k, v in label_dict.items()}
-
-    preds_flat = np.argmax(preds, axis=1).flatten()
-    labels_flat = labels.flatten()
-
-    # Calculate confusion matrix
-    cm = confusion_matrix(labels_flat, preds_flat)
-
-    for label in np.unique(labels_flat):
-        # True Positives
-        TP = cm[label, label]
-        # False Positives: sum of the corresponding column minus TP
-        FP = np.sum(cm[:, label]) - TP
-        # False Negatives: sum of the corresponding row minus TP
-        FN = np.sum(cm[label, :]) - TP
-
-        precision = TP / (TP + FP) if (TP + FP) != 0 else 0
-        recall = TP / (TP + FN) if (TP + FN) != 0 else 0
-        f1 = (
-            2 * (precision * recall) / (precision + recall)
-            if (precision + recall) != 0
-            else 0
-        )
-
-        tqdm.write(f"Class: {label_dict_inverse[label]}")
-        tqdm.write(f"Accuracy: {TP}/{TP+FN} (True Positives / Total Actual Positives)")
-        tqdm.write(f"Precision: {precision:.2f}")
-        tqdm.write(f"Recall: {recall:.2f}")
-        tqdm.write(f"F1 Score: {f1:.2f}\n")
 
 
 def pearson_corr(x, y):
